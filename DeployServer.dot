@@ -1,0 +1,189 @@
+Digraph DeployServer
+{
+    // Default Style
+    graph[compound=true;];
+    
+    node[shape=box; fontsize=11];
+    
+    // -------------------------------------------------------------------------
+    
+    // NODES
+        // Free Nodes    
+            Start [shape=Msquare];
+        
+        // Main script
+            subgraph run
+            {
+                node[color=lightblue, style=filled]
+                run2 [label="_run.ps1 (2)"]; 
+                run3 [label="_run.ps1 (3)"]; 
+                run4 [label="_run.ps1 (4)"];
+            }
+            
+        // Standard Functions
+            subgraph Std
+            {
+                gc [label="Get-Content", color=white, style=filled]
+                cfJSON [label="ConvertFrom-JSON", color=white, style=filled]
+            }
+            
+        // Custom Functions
+            subgraph CustomFunctions
+            {
+                LoadNSXTags;
+                LoadComputerObject;
+                CreateBaseVM;
+            }
+            
+        // DataObjects
+            subgraph DataObjects
+            {
+                node[style=filled, color=greenyellow];
+                
+                JSON;
+                Comdef [label="ComputerDefinition"];
+                Comobj [label="ComputerObject"];
+            }
+    
+        // Classes
+            subgraph Classes
+            {
+                node[shape=folder; style=filled; color=crimson; fontcolor=white];
+                
+                //CreateBaseVM_class  [label="CreateBaseVM.class"];
+                Computer_class      [label="[Computer]"];
+                Disk_class          [label="[Disk]"];
+                VMWareCustom_class  [label="[VMWareCustom]"];
+            }
+            
+    // -------------------------------------------------------------------------
+            
+    // FLOW
+        subgraph Flow
+        {
+        // DataFlow
+            subgraph DataFlow_Main
+            {
+                edge[color=blue];
+                
+                // From JSON to ComputerObj
+                JSON               -> gc;                               /* JSON             -> get-content      */
+                gc                 -> cfJSON;
+                cfJSON             -> Comdef;                           /* ConvertFrom-JSON -> pscustomobject   */
+                Comdef             -> run2;   
+                run2 -> LoadComputerObject;                     /* _run.ps1 loads LoadComputerObject function */
+                LoadComputerObject -> Comobj [tailport="s"];    /* LoadComputerObject returns ComputerObject to _run.ps1 */
+                
+                Comobj             -> run3;      
+                run3               -> CreateBaseVM [label="  1  "; fontcolor=blue;]
+                run3               -> run4 [weight=8; label="  2  "; fontcolor=blue;];
+            }
+        
+        // Calls
+            subgraph Flow_Calls
+            {      
+                // Main calls
+                VMWareCustom_class -> run4;
+                
+                // Class includes
+                Computer_class -> LoadComputerObject;
+                Disk_class -> Computer_class;
+                
+            }
+            
+            subgraph Flow_Wait
+            {
+                edge[color=deeppink; label = "wait"; tailport="e"; fontcolor=deeppink];
+                
+                CreateBaseVM -> run3
+            }
+            
+        // Input 
+            subgraph Flow_ParameterInput
+            {
+                edge[shape=none, color=greenyellow, style="dashed"]
+                
+            }
+    
+        // Output
+            subgraph Flow_OutPut
+            {
+                edge[color=red; style=bold];
+                
+                CreateBaseVM -> VMWareCreateVM;
+                run4 -> VMWareAddDisks;
+                run4 -> VMWareAddTags;
+            }  
+            
+        // Input
+            subgraph Flow_Input
+            {
+                edge[color=red; style=bold];
+                
+                Start -> gc [lhead=cluster_run1, label="        "];                    /* call _run.ps1 which starts with get-content */
+            }
+            }
+                
+    // -------------------------------------------------------------------------
+    
+    // CLUSTERS
+    subgraph Graphs
+    {
+        labeljust="l"; color=gray; fontsize=9;
+    
+        // Sections
+             /* Get ComputerDefinition */
+            subgraph cluster_run1{                     label = "_run.ps1"; color=lightblue; style=filled;  
+                gc; 
+                cfJSON;           
+            }
+    
+        // Output
+            subgraph Output
+            {
+                style="dashed, bold"; color=black;
+                
+                /* Output: VMWare Create Base VM */
+                subgraph cluster_VMWareCreateBaseVM{    label="VMWare"; 
+                    VMWareCreateVM [label="Create base VM from template", border=dotted]
+                }
+
+                /* Output: VMWare Add-Disks, Add-LoadNSXTags */
+                subgraph cluster_VMWareConfig1{         label="VMWare";
+                    VMWareAddDisks [label="Add Disks to VM", border=dotted];
+                    VMWareAddTags[label="Add NSX Tags to VM", border=dotted];
+                }    
+            }
+    
+        // Files
+            subgraph cluster_File_deployserver_load{     label = "DeployServer.Load.ps1"; 
+                LoadNSXTags -> LoadComputerObject;
+            }
+            
+            subgraph cluster_File_ComputerObject{        label = "Computer.object.ps1"; style=filled; color=khaki; 
+                Computer_class;
+            }
+            subgraph cluster_File_CreateBaseVM{          label = "CreateBaseVM.ps1"; 
+                CreateBaseVM;
+            }             
+            
+            // Class Files
+            subgraph ClassFiles
+            {
+                style=filled; color=khaki; 
+                
+                subgraph cluster_File_DiskObject{        label = "Disk.object.ps1";
+                    Disk_class;
+                }
+                subgraph cluster_File_VMWareCustom{      label = "VMWareCustom.class.ps1";
+                    VMWareCustom_class
+                }
+            }
+    }
+    
+    // -------------------------------------------------------------------------
+
+
+    
+
+}

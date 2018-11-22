@@ -1,0 +1,84 @@
+/*
+inotifywait -e close_write,moved_to,create -m . |
+while read -r directory events filename; do
+  if [ "$filename" = "AddDisk.dot" ]; then
+    dot -Tpng -O AddDisk.dot
+  fi
+done
+*/
+
+
+Digraph DeployServer
+{
+    // Default Style
+        graph[compound=true;];
+        
+        node[shape=box; fontsize=11];    
+        
+    // Nodes
+        Start [shape=Msquare];
+        
+        subgraph run
+        {
+            node[color=lightblue, style=filled]
+            AddDisk [label = "AddDisk.ps1"];
+        }  
+        
+        subgraph DataObjects
+        {
+            node[style=filled, color=greenyellow];
+            
+            RunConfig; SysConfig;
+        }
+        
+        subgraph Classes
+        {
+            node[shape=folder; style=filled; color=crimson; fontcolor=white];
+            VMWareCustom_class 
+        }
+    
+    // Edges  
+        // Input
+            subgraph Flow_Input
+            {
+                edge[color=red; style=bold];    
+                Start -> AddDisk;
+            }
+            
+            VMWareCustom_class -> AddDisk;
+            RunConfig -> AddDisk;
+            SysConfig -> AddDisk;
+            SysConfig -> VMWareCustom_class;
+    
+        // Output
+            subgraph Flow_OutPut
+            {
+                edge[color=red; style=bold];
+                
+                AddDisk -> VMWareAddDisks [lhead=cluster_VMWareConfig1; label = "      "];
+            }
+    
+    // Clusters
+        subgraph ClassFiles
+        {
+            style=filled; color=khaki; 
+            
+            subgraph cluster_File_VMWareCustom{      label = "VMWareCustom.class.ps1";
+                VMWareCustom_class
+            }
+        }
+        
+        subgraph Output
+        {
+            style="dashed, bold"; color=black;
+            
+            /* Output: VMWare Add-Disks, Add-LoadNSXTags */
+            subgraph cluster_VMWareConfig1{         label="VMWare";
+                VMWareAddDisks [label="Add Disks to VM", border=dotted];
+            }    
+        }
+
+}
+
+
+
